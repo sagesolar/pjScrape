@@ -260,7 +260,6 @@ function retrieveAndStoreRecords() {
                     if (dataSourceConfigs.remote.displayRetrievedRecords) {
                         console.log(JSON.stringify(pageRecord, null, 4));
                     }
-
                 }
             }
 
