@@ -1,0 +1,1 @@
+phantomjs --config=pjScrape\config\app.config.json pjScrape\pjScrape.js WK

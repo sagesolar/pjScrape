@@ -1,0 +1,47 @@
+{
+    "scrapeSettings": {
+        "hidePageMessages": true,
+        "hidePageErrors": true,
+        "hideBlockedResources":  true,
+        "displayRetrievedRecords": false,
+        "displayCsvRecords": false,
+        "generateRecordGuids": false,
+        "recordsFetchBatchSize": 25,
+        "ajaxRetrievalTimeout": 60000
+    },
+
+    "dataSourceAliases": {
+        "WK": "WK",
+        "Wikipedia": "WK",
+    },
+
+    "preResources": [
+        ["source"],
+        ["profileUrl", "Profile URL"],
+        ["guid", "GUID"]
+    ],
+
+    "postResources": [
+        ["encodingError"]
+    ],
+
+    "filePaths": {
+        "localJquery": "pjScrape/scripts/jquery-2.2.4.min.js",
+        "localMomentJs": "pjScrape/scripts/moment-2.22.0.min.js",
+        "remoteCommon": "pjScrape/scripts/pjRemoteCommon.js",
+        "dataSourceConfig": "pjScrape/dsConfig/#####.cfg.js",
+        "dataSourceInput": "pjScrape/dsInput/#####.input.txt",
+        "dataSourceOutput": "pjScrape/dsOutput/#####.output.csv"
+    },
+
+    "pageSettings": {
+        "userAgentString": "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36",
+        "loadImages": false,
+        "javascriptEnabled": true,
+        "resourceTimeout": 10000,
+        "customHeaders": {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-GB,en;q=0.8"
+        }
+    }
+}
