@@ -10,12 +10,7 @@ dataSourceConfigs = {
         ["genres"],
         ["developers"],
         ["publishers"],
-        ["releaseDate"],
-        ["expasion"],
-        ["hardcopy"],
-        ["gog", "GOG"],
-        ["image"],
-        ["files"]
+        ["releaseDate"]
     ]
 }
 
