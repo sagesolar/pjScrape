@@ -58,15 +58,13 @@ function retrieveRecordData(data) {
         if ($(this).find("th:contains('Release')")) {
             temp = $(this).find("th:contains('Release')").next().html();
             if (typeof temp !== "undefined") {
-                temp = temp
+                pageRecord.releaseDate = temp
                 .replace(/(?:<br>|<li>)/g, ";;")
                 .replace(/<.+?>/g, "")
                 .replace(/(?:\s*;;){1,}\s*/g, ";; ")
                 .replace(/(?:^\s*;;|;;\s*$)/, "")
                 .replace(/\[\w+\]/g, "")
-                .trim();
-
-                pageRecord.releaseDate
+                .trim();                
             }
         }
     });
