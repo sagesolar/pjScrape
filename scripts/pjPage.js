@@ -67,7 +67,8 @@ function setPageSettings() {
             console.log(msg_inf_dashDivider);
         }
         else if (appConfig.scrapeSettings.hidePageMessages) {
-            if (msg.search(msg_int_insecureContentDisplayed) !== -1) {
+            if (msg.search(msg_int_insecureContentDisplayed) !== -1 ||
+                msg.search(msg_int_oneOrMoreWindowsStubbed) !== -1) {
                 mutedPageMessages.push(msg);
             }
             else {
@@ -180,25 +181,27 @@ function setPageSettings() {
 // Handle page redirects and inject remote scripts
 function onPageLoadComplete(status, initialPageStatus) {
     //var pageContect = page.content;
+    //console.log(page.content);
 
     // If page has been marked as moved by the host, add the returned link to the URL list to be followed next
     if (initialPageStatus.status === 301) {
 
-        console.log("SERVER RESPONSE: [" + currentUrl + " is now " + initialPageStatus.newUrl + "]");
+        console.log("SERVER RESPONSE: [" + currentUrl + "] is now [" + initialPageStatus.newUrl + "]");
 
         // Add the redirected URL into the current URL record
-        currentUrl = initialPageStatus.newUrl;
+        dataSourceConfigs.remote.records[0].url = initialPageStatus.newUrl;
 
         // Add the current date-time to URL records GUID as a unique ID to prevent subsequent records from being skipped by script
-        // this is to ensure that other potential records aren"t missed due to host redirection. However this also mean that
+        // this is to ensure that other potential records aren't missed due to host redirection. However this also mean that
         // multiple records for the same individual may be found as multiple aliases could redirect to the same record at the host.
-        var d = new Date().getTime();
-        currentUrl = currentUrl + "[REDIRECTED]" + d;
+
+        //var d = new Date().getTime();
+        //currentUrl = currentUrl + "[REDIRECTED]" + d;
 
         setTimeout(function() {
             page.clearMemoryCache();
             page.close();
-            console.log(msg_inf_retryRedirectUrl + currentUrl);
+            console.log(msg_inf_retryRedirectUrl + dataSourceConfigs.remote.records[0].url);
             console.log(msg_inf_dashDivider);
             setTimeout(function() {
                 beginScrape();
