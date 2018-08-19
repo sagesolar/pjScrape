@@ -15,9 +15,11 @@ var pageRecord;
 var temp;
 
 // Add jQuery regex support
+// https://blog.mastykarz.nl/jquery-regex-filter/
 $.extend(
     jQuery.expr[':'], {
         regex: function(a, i, m, r) {
+            //console.log(m[3]);
             var r = new RegExp(m[3], 'i');
             return r.test(jQuery(a).text());
         }
@@ -65,6 +67,17 @@ function StringMap() {
         }
     }
 
+    this.addArr = function(arr) {
+        for (var i = 0; i < arr.length; i++) {
+            if (!mapObj.hasOwnProperty(arr[i])) {
+                mapObj[arr[i]] = 1;
+            }
+            else {
+                mapObj[arr[i]]++;
+            }
+        }
+    }
+
     this.remove = function(str) {
         if (mapObj.hasOwnProperty(str)) {
             if (mapObj[str] > 1) {
@@ -91,6 +104,18 @@ function StringMap() {
         }
         return values;
     };
+
+    this.valuesCount = function() {
+        return Object.keys(mapObj).length;
+    }
+
+    this.valuesOccurrenceTotal = function() {
+        var count = 0;
+        for (var i in mapObj) {
+             count = count + mapObj[i];
+        }
+        return count;
+    }
 }
 
 // Calculate and display current retrieved record counts
@@ -118,6 +143,11 @@ function ftInToCm(imperial) {
     return Math.round(inches * 2.54);
 }
 
+// To title case string converter
+String.prototype.toTitleCase = function () {
+    return this.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
+};
+
 // Sanitise the value of each key in the page data record
 // Use [https://www.somacon.com/p525.php] to identify each individual character in a string
 function sanitiseRecord(dataRecord) {
@@ -125,11 +155,11 @@ function sanitiseRecord(dataRecord) {
         // Replace non-standard characters with standard characters
         dataRecord[key] = value.toString()
             .replace(/[\u0027\u0060\u00B4\u02B9\u02BB\u02BC\u02BD\u02BE\u02BF\u02C8\u02CA\u0313\u0314\u0315\u0343\u0374\u0384\u055A\u1FBD\u1FBF\u2018\u2018\u2019\u201B\u2032\uA78B\uA78C\uFF07]/g, "'")
-            .replace(/[\u201C\u201D\u201F\u301D\u301E\uFF02\u02EE]/g, "\"")
+            .replace(/[\u201C\u201D\u201F\u301D\u301E\uFF02\u02EE\u2033]/g, "\"")
             .replace(/[\u00AD\u2010\u2011\u2012\u2013\u2014\u2015\uFE63\uFF0D\u2043]/g, "-")
             .replace(/&amp;/g, "&") // Un-escape ampersand
             .replace(/\u00A0/g, " ") // Non-breaking spaces
-            .replace(/\"/g, '""') // Escape single double quote characters
+            .replace(/"/g, '""') // Escape single double quote characters
             .trim();
     });
 
@@ -201,7 +231,7 @@ function createPageRecord(encodeErrorBool) {
     }
 }
 
-// Parse a given string and return any detected date in DD-MM-YYYY getFormatedDate
+// Parse a given string and return any detected date in DD-MM-YYYY
 // This function uses momentjs for date parsing and formatting
 function getFormatedDate(inputStr, dateFormstStr) {
     if (inputStr.trim() === "") {
