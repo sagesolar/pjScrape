@@ -5,9 +5,13 @@
         "hideBlockedResources":  true,
         "displayRetrievedRecords": false,
         "displayCsvRecords": false,
+        "persistCsvRecordsToFile": true,
         "generateRecordGuids": false,
+        "updateInputFile": true,
+        "breakAtBlankInputRow": true,
         "recordsFetchBatchSize": 25,
-        "ajaxRetrievalTimeout": 60000
+        "ajaxRetrievalTimeout": 60000,
+        "recordRetrievalRestartCount": 500
     },
 
     "dataSourceAliases": {
@@ -31,7 +35,8 @@
         "remoteCommon": "pjScrape/scripts/pjRemoteCommon.js",
         "dataSourceConfig": "pjScrape/dsConfig/#####.cfg.js",
         "dataSourceInput": "pjScrape/dsInput/#####.input.txt",
-        "dataSourceOutput": "pjScrape/dsOutput/#####.output.csv"
+        "dataSourceOutput": "pjScrape/dsOutput/#####.output.csv",
+        "dataSourceInputBackupDir": "pjScrape/dsInput/_backup/"
     },
 
     "pageSettings": {
