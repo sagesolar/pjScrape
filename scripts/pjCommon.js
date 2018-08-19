@@ -23,7 +23,8 @@ function beginScrape() {
             console.log(msg_inf_equalsDivider);
         }
 
-        console.log("Loading " + dataSourceConfigs.name + " --> " + currentUrl.replace(dataSourceConfigs.recordPathRoot, ""));
+        console.log("Retrieving [" + appConfig.scrapeSettings.recordsFetchBatchSize +"] records per batch.")
+        console.log("Loading [" + dataSourceConfigs.name + "] ==> " + currentUrl.replace(dataSourceConfigs.recordPathRoot, ""));
         console.log(msg_inf_equalsDivider);
 
         if (!appConfig.scrapeSettings.hidePageErrors || !appConfig.scrapeSettings.hideBlockedResources) {
@@ -55,7 +56,7 @@ function importAppConfig(appConfigFilePath) {
     }
     catch (e) {
         console.log(msg_err_parsingAppConfig);
-        console.log(e);
+        console.log(msg_inf_errorDetails + e);
     }
 }
 
@@ -102,7 +103,7 @@ function importDataSourceDetails(dataSourceAlias) {
     }
     catch (e) {
         console.log(msg_err_parsingSysArgs);
-        console.log(e);
+        console.log(msg_inf_errorDetails + e);
         phantom.exit();
     }
 }
@@ -110,6 +111,7 @@ function importDataSourceDetails(dataSourceAlias) {
 // Import data source input records
 function importDataSourceInputRecords(dataSourceInputPath) {
     var curLine;
+    var curLineNo = 1;
     var stream = fs.open(dataSourceInputPath, {
         mode: "r",
         charset: "UTF-8"
@@ -117,6 +119,19 @@ function importDataSourceInputRecords(dataSourceInputPath) {
 
     while (!stream.atEnd()) {
         curLine = stream.readLine();
+
+        // If the current line is blank
+        if (curLine.trim() === "") {
+            // Stop import at blank row
+            if (appConfig.scrapeSettings.breakAtBlankInputRow) {
+                console.log(msg_inf_breakingInputFileImportAtRow + curLineNo);
+                break;
+            }
+            // Skip import at blank row
+            else {
+                continue;
+            }
+        }
 
         // If input records have an id column
         if (curLine.indexOf("\t") !== -1) {
@@ -141,10 +156,70 @@ function importDataSourceInputRecords(dataSourceInputPath) {
                 "url": curLine.replace(dataSourceConfigs.recordPathRoot, "")
             });
         }
+
+        curLineNo++;
     }
 
     dataSourceConfigs.remote.initialRecordCount = dataSourceConfigs.remote.records.length;
     stream.close();
+
+    // Exit program if no input records were imported
+    if (dataSourceConfigs.remote.records.length === 0){
+        console.log(msg_err_noInputRecordsLoaded);
+        phantom.exit();
+    }
+}
+
+// Create a backup of the data source input file
+function createInputFileBackup(){
+    // If input file backup directory does not exist create it
+    if (!fs.isDirectory(appConfig.filePaths.dataSourceInputBackupDir)){
+        fs.makeDirectory(appConfig.filePaths.dataSourceInputBackupDir)
+    }
+
+    var inputBackupFilePath = appConfig.filePaths.dataSourceInputBackupDir + appConfig.filePaths.dataSourceInput.replace(/pjScrape\/dsInput\//, "").replace(/\.txt/, "") + "[INITIAL].txt"
+
+    try {
+        // If the input file backup does not exist, create it
+        if (!fs.exists(inputBackupFilePath)){
+            console.log(msg_inf_backupInputFile);
+            fs.copy(appConfig.filePaths.dataSourceInput, inputBackupFilePath);
+        }
+        // If the input file backup is older than the current input file, replace it
+        else {
+            var inputFileLastModDate = fs.lastModified(appConfig.filePaths.dataSourceInput)
+            var backupInputFileLastModDate = fs.lastModified(inputBackupFilePath);
+
+            if (backupInputFileLastModDate < inputFileLastModDate) {
+                fs.remove(inputBackupFilePath);
+                fs.copy(appConfig.filePaths.dataSourceInput, inputBackupFilePath);
+            }
+        }
+    }
+    catch (e) {
+        console.log(msg_err_unableToBackupInputFile + appConfig.filePaths.dataSourceInput);
+        console.log(msg_inf_errorDetails + e);
+        dataSourceConfigs.remote.error = true;
+        return false;
+    }
+}
+
+// Remove the retrieved records from the input file
+function updateInputFile() {
+    // Clear the current input file
+    fs.write(appConfig.filePaths.dataSourceInput, "", {
+        mode: "w",
+        charset: "UTF-8"
+    });
+
+    // Add each remaining record to retrieve into the input file
+    for (var i = 0; i < dataSourceConfigs.remote.records.length; i++) {
+        fs.write(
+            appConfig.filePaths.dataSourceInput,
+            dataSourceConfigs.remote.records[i].id + "\t" + dataSourceConfigs.recordPathRoot + dataSourceConfigs.remote.records[i].url + "\r\n",
+            {mode: "a", charset: "UTF-8"}
+        );
+    }
 }
 
 // Create the data source output file and add header row
@@ -193,8 +268,8 @@ function createOutputFile(outputFilePath) {
 
         // Add the header row to the file
         fs.write(outputFilePath, headerRowNames.join(",") + "\r\n", {
-            mode: 'w',
-            charset: 'UTF-8'
+            mode: "w",
+            charset: "UTF-8"
         });
     }
 }
@@ -241,7 +316,7 @@ function retrieveAndStoreRecords() {
             ) {
                 console.log("RETRIEVING : " + dataSourceConfigs.remote.records[0].url);
                 createPageRecord(false);
-                retrieveRecord(pageRecord.profileUrl);
+                retrieveRecord(pageRecord.profileUrl, 0);
                 retrieveRecordData(outputData);
 
                 // Sanitise the value of each key in the page data record
@@ -297,28 +372,45 @@ function retrieveAndStoreRecords() {
                 }
 
                 // Sanitise whitespace in CSV record
-                csvRecordRow = csvRecordRow.replace(/\"{3,}/g, '""').replace(/\s+/g, " ") + "\r\n";
+                csvRecordRow = csvRecordRow.replace(/\s+/g, " ") + "\r\n";
 
                 // Display current CSV record
                 if (appConfig.scrapeSettings.displayCsvRecords) {
                     console.log("CSV RECORD FOR: [" + dataSourceConfigs.remote.results[i].name + "]");
-                    console.log(csvRecordRow); //.replace(/",/g, "\",\r\n")
+                    for (var k = 0; k < headerKeys.length; k++) {
+                        console.log("[" + headerKeys[k] + "] => [" + dataSourceConfigs.remote.results[i][headerKeys[k]] + "]");
+                        if (dataSourceConfigs.remote.results[i][headerKeys[k]].length > 100) {
+                            console.log("");
+                        }
+                    }
                     console.log(msg_inf_dashDivider);
                 }
 
                 // Persist current CSV record row
-                fs.write(appConfig.filePaths.dataSourceOutput, csvRecordRow, {
-                    mode: 'a',
-                    charset: 'UTF-8'
-                });
+                if (appConfig.scrapeSettings.persistCsvRecordsToFile) {
+                    fs.write(appConfig.filePaths.dataSourceOutput, csvRecordRow, {
+                        mode: "a",
+                        charset: "UTF-8"
+                    });
+                }
+            }
+
+            if (appConfig.scrapeSettings.updateInputFile){
+                updateInputFile();
+                console.log(msg_inf_inputFileUpdated);
+                console.log(msg_inf_dashDivider);
             }
         }
 
         // Reset results array
         dataSourceConfigs.remote.results = [];
     }
+    // While no errors have occured, and a batch of 500 records have not been retrieved, and
+    // there are records still to be retrieved,continue retrieving. This forces phantomjs
+    // to reset the page occasionally to deal with memory overflows.
     while (
         dataSourceConfigs.remote.error !== true &&
+        (dataSourceConfigs.remote.initialRecordCount - dataSourceConfigs.remote.records.length) % appConfig.scrapeSettings.recordRetrievalRestartCount !== 0  &&
         dataSourceConfigs.remote.records.length !== 0
     );
 
@@ -351,7 +443,7 @@ function getUrlDomain(url) {
     }
     catch (e) {
         console.log(msg_err_incorrectRemotePathRoot);
-        console.log(e);
+        console.log(msg_inf_errorDetails + e);
         phantom.exit();
     }
 }
@@ -388,8 +480,12 @@ function getSystemTitle() {
 function displayScrapeSummary() {
     console.log("");
     console.log(msg_inf_equalsDivider);
-    console.log(msg_inf_allRecordsPersisted);
-    console.log("");
+
+    if (appConfig.scrapeSettings.persistCsvRecordsToFile) {
+        console.log(msg_inf_allRecordsPersisted);
+        console.log("");
+    }
+    
     console.log(msg_inf_mutedPageErrorCount + mutedPageErrors.length);
     console.log(msg_inf_mutedPageMessageCount + mutedPageMessages.length);
     console.log(msg_inf_blockedResourceCount + countBlockedResources);
@@ -403,6 +499,6 @@ function getGuid() {
         return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
     }
 
-    // xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-    return "pjs#" + s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
+    // PJS#xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+    return "PJS#" + s4() + s4() + "-" + s4() + "-" + s4() + "-" + s4() + "-" + s4() + s4() + s4();
 }
