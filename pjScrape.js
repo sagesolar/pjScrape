@@ -9,13 +9,18 @@ importAppConfig("pjScrape/config/app.config.json");
 
 // If a data source code or name has been provided
 if (sysArgs[1]) {
-    importDataSourceDetails(sysArgs[1]);
+    getSystemTitle();
+    importDataSourceDetails(sysArgs[1]);    
     importDataSourceInputRecords(appConfig.filePaths.dataSourceInput);
 
-    getSystemTitle();
+    if (appConfig.scrapeSettings.updateInputFile){
+        createInputFileBackup();
+    }
+
     if (appConfig.scrapeSettings.generateRecordGuids) {
         console.log(msg_inf_generatingRecordGuids);
     }
+
     createOutputFile(appConfig.filePaths.dataSourceOutput);
     console.log(dataSourceConfigs.remote.initialRecordCount + msg_inf_initialRecCount)
 
