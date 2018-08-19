@@ -1,1 +1,2 @@
-phantomjs --config=pjScrape\config\app.config.json pjScrape\pjScrape.js WK
+phantomjs --config=pjScrape\config\config.json pjScrape\pjScrape.js WK
+phantomjs --config=pjScrape/config/config.json pjScrape/pjScrape.js WK
