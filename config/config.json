@@ -1,5 +1,6 @@
 {
-    "diskCacheEnabled": "false",
+    "diskCacheEnabled": false,
+    "printDebugMessages": false,
     "diskCachePath": "./pjScrape/cache/",
     "outputEncoding": "utf8"
 }
